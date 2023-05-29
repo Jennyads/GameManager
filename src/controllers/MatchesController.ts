@@ -61,29 +61,31 @@ class MatchesController {
 
     public async putMatch (req: Request, res: Response) : Promise<Response> {
         try{
-            const createMatch = req.body
-            const idMatch: any = req.params.uuid
-            const matchRepository = AppDataSource.getRepository(Match)
-            if(await matchRepository.findOneBy({id: createMatch.idhost}) == null){ return res.json({error: "Mandante desconhecido"}) }
-            if(await matchRepository.findOneBy({id: createMatch.idvisitor}) == null ){ return res.json({error: "Visitante desconhecido"}) }
-            
-            const findMatch = await matchRepository.findOneBy({ id: idMatch })
-            findMatch.host = createMatch.idhost
-            findMatch.visitor = createMatch.idvisitor
-            findMatch.date = createMatch.date
-            await matchRepository.save(findMatch)
-            
-            const find = AppDataSource.getRepository(Match)
-            .createQueryBuilder("match")
-            .leftJoinAndSelect("match.host", "host")
-            .leftJoinAndSelect("match.visitor", "visitor")
-            .where("match.id = :id", { id: idMatch })
-            .getOne();
+            const { id, idhost, idvisitor, date } = req.body
 
-            return res.json(await find)     
+            const teams = AppDataSource.getRepository(Teams)
+            if( await teams.findOneBy({id: idhost}) == null){ return res.json({error: "Mandante desconhecido"}) }
+            if(await teams.findOneBy({id: idvisitor}) == null ){ return res.json({error: "Visitante desconhecido"}) }
+            
+            const matchRepository = AppDataSource
+                .createQueryBuilder()
+                .update(Match)
+                .set({ host: idhost, visitor: idvisitor, date: date })
+                .where("id = :id", { id: id })
+                .execute()
+                
+            matchRepository.then(async (re) => {
+                console.log(re);
+                
+                const findRep = AppDataSource.getRepository(Match)
+                const all = await findRep.findOneBy({id: id})
+                if(all.host === idhost){
+                    return res.json(all)
+                }
+            })
 
         }catch(err){
-            return res.json({error: "Erro ao atualizar!"})
+            return res.json({error: "Erro ao mudar!"})
         }
     }
 
