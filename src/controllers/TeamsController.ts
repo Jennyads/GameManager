@@ -21,13 +21,12 @@ class TeamsController {
 
     public async getTermoTeams (req: Request, res: Response) : Promise<Response> {
         try{
-            const termo:any = req.params.termo
-            const teamsRepository = AppDataSource.getRepository(Teams)
-                .createQueryBuilder("time")
-                .where("time.name like :name", { name:`%${termo}%` })
-                //.orderBy("team.name", "ASC")
-                .getMany()
-            return res.json((await teamsRepository))
+            let termoTeam = req.params.termo
+            const teamRepository = AppDataSource.getRepository(Teams)
+             .createQueryBuilder("team")
+             .where("team.name like :name", { name:`%${termoTeam}%` })
+             .getMany()
+            return res.json(await teamRepository)
         }catch(err){
             return res.json({erro: "Não foi possivel pegar os teams"})
         }

@@ -62,27 +62,21 @@ class MatchesController {
     public async putMatch (req: Request, res: Response) : Promise<Response> {
         try{
             const { id, idhost, idvisitor, date } = req.body
-
-            const teams = AppDataSource.getRepository(Teams)
-            if( await teams.findOneBy({id: idhost}) == null){ return res.json({error: "Mandante desconhecido"}) }
-            if(await teams.findOneBy({id: idvisitor}) == null ){ return res.json({error: "Visitante desconhecido"}) }
-            
-            const matchRepository = AppDataSource
-                .createQueryBuilder()
-                .update(Match)
-                .set({ host: idhost, visitor: idvisitor, date: date })
-                .where("id = :id", { id: id })
-                .execute()
-                
-            matchRepository.then(async (re) => {
-                console.log(re);
-                
-                const findRep = AppDataSource.getRepository(Match)
-                const all = await findRep.findOneBy({id: id})
-                if(all.host === idhost){
-                    return res.json(all)
-                }
-            })
+            const host = await AppDataSource.getRepository(Teams).findOneBy({ id: idhost })
+            console.log(host)
+            if (!host) {
+                return res.json({ error: "Mandante desconhecido" })
+            }
+            const visitor = await AppDataSource.getRepository(Teams).findOneBy({ id: idvisitor })
+            if (!visitor) {
+                return res.json({ error: "Visitante desconhecido" })
+            }
+            var match = await AppDataSource.getRepository(Match).findOneBy({ id: id })
+            match.host = host
+            match.visitor = visitor
+            match.date = date
+            const updatedMatch = await AppDataSource.getRepository(Match).save(match)
+            return res.json(updatedMatch)
 
         }catch(err){
             return res.json({error: "Erro ao mudar!"})
